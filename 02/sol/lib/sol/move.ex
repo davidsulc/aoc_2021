@@ -3,6 +3,8 @@ defmodule Sol.Move do
 
   defstruct [:direction, :count]
 
+  @type t :: %__MODULE__{}
+
   def new(direction, count) do
     %__MODULE__{direction: direction, count: count}
   end
