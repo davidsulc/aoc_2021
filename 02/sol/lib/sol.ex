@@ -1,18 +1,15 @@
 defmodule Sol do
-  @moduledoc """
-  Documentation for `Sol`.
-  """
+  alias Sol.{Move, Position}
 
-  @doc """
-  Hello world.
+  @path Path.join(~w(priv input.txt))
 
-  ## Examples
-
-      iex> Sol.hello()
-      :world
-
-  """
-  def hello do
-    :world
+  def part_1(file \\ @path) do
+    file
+    |> File.stream!()
+    |> Stream.map(&Move.from_string/1)
+    |> Enum.reduce(Position.new(), fn %Move{} = move, %Position{} = pos ->
+      Position.apply(pos, move)
+    end)
+    |> Position.result()
   end
 end
