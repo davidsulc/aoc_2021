@@ -7,16 +7,21 @@ defmodule Sol.Game do
     %__MODULE__{numbers: numbers, boards: boards}
   end
 
-  def play_until_winners(%__MODULE__{numbers: [], winning_boards: []} = game), do: game
+  def play_until(%__MODULE__{} = game, condition), do: play_until(:continue, game, condition)
 
-  def play_until_winners(%__MODULE__{numbers: _, winning_boards: winners} = game)
-      when length(winners) > 0,
-      do: game
+  def play_until(:halt, %__MODULE__{} = game, _condition), do: game
 
-  def play_until_winners(%__MODULE__{} = game) do
-    game
-    |> announce_next_number()
-    |> play_until_winners()
+  def play_until(:continue, %__MODULE__{} = game, condition) do
+    game = announce_next_number(game)
+
+    continue? =
+      cond do
+        condition.(game) -> :halt
+        length(game.numbers) == 0 -> :halt
+        true -> :continue
+      end
+
+    play_until(continue?, game, condition)
   end
 
   defp announce_next_number(%__MODULE__{} = game) do
