@@ -1,5 +1,5 @@
 defmodule Sol.Part1 do
-  alias Sol.Input
+  alias Sol.{Input, Util}
 
   @path Path.join(~w(priv input.txt))
 
@@ -22,7 +22,7 @@ defmodule Sol.Part1 do
     parses_measures
     |> Stream.map(&compute_single_rate/1)
     |> collect_rates()
-    |> Enum.map(fn {k, v} -> {k, bit_list_to_decimal(v)} end)
+    |> Enum.map(fn {k, v} -> {k, Util.bit_list_to_decimal(v)} end)
     |> Enum.into(%{})
   end
 
@@ -36,15 +36,6 @@ defmodule Sol.Part1 do
       end
 
     %{gamma: gamma, epsilon: epsilon}
-  end
-
-  defp bit_list_to_decimal(bits) do
-    {decimal, ""} =
-      bits
-      |> Enum.join("")
-      |> Integer.parse(2)
-
-    decimal
   end
 
   defp collect_rates(rates) do
