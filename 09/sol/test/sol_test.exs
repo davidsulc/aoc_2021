@@ -13,4 +13,8 @@ defmodule SolTest do
   test "Part 1" do
     assert Sol.solve_part_1(@test_input) == 15
   end
+
+  test "Part 2" do
+    assert Sol.solve_part_2(@test_input) == 1134
+  end
 end
