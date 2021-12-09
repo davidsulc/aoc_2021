@@ -16,6 +16,15 @@ defmodule Sol do
     |> Enum.sum()
   end
 
+  def part_2(input \\ @input) do
+    locations = parse(input)
+    {min, max} = Enum.min_max(locations)
+
+    min..max
+    |> Enum.map(&total_fuel_to(locations, &1))
+    |> Enum.min()
+  end
+
   defp median(list) do
     len = length(list)
 
@@ -33,4 +42,20 @@ defmodule Sol do
   end
 
   defp distance_to(from, to), do: abs(from - to)
+
+  def total_fuel_to(locations, to) do
+    locations
+    |> Enum.map(&fuel_to(&1, to))
+    |> Enum.sum()
+  end
+
+  def fuel_to(from, to) do
+    distance = distance_to(from, to)
+
+    case distance do
+      1 -> 1
+      2 -> 3
+      x -> div(x * (x + 1), 2)
+    end
+  end
 end
