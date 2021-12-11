@@ -10,6 +10,19 @@ defmodule SolTest do
   11111
   """
 
+  @input """
+    5483143223
+    2745854711
+    5264556173
+    6141336146
+    6357385478
+    4167524645
+    2176841721
+    6882881134
+    4846848554
+    5283751526
+    """
+
   alias Sol.Grid
 
   defp assert_grid(expected, actual) do
@@ -56,21 +69,8 @@ defmodule SolTest do
 
     assert flash_count == 9
 
-    grid_string = """
-      5483143223
-      2745854711
-      5264556173
-      6141336146
-      6357385478
-      4167524645
-      2176841721
-      6882881134
-      4846848554
-      5283751526
-      """
-
     {grid, flash_count} =
-      grid_string
+      @input
       |> Grid.from_string()
       |> Sol.step(10)
 
@@ -90,7 +90,7 @@ defmodule SolTest do
       assert flash_count == 204
 
     {grid, flash_count} =
-      grid_string
+      @input
       |> Grid.from_string()
       |> Sol.step(100)
 
@@ -108,5 +108,14 @@ defmodule SolTest do
         """, grid)
 
       assert flash_count == 1656
+  end
+
+  test "find_simultaneous_flash/1" do
+    step_count =
+      @input
+      |> Grid.from_string()
+      |> Sol.find_simultaneous_flash()
+
+    assert step_count == 195
   end
 end

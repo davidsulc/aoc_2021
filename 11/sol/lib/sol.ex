@@ -1,6 +1,6 @@
 defmodule Sol do
   defmodule Grid do
-    defstruct [:points]
+    defstruct [:points, :size]
 
     def from_string(string) when is_binary(string) do
       points =
@@ -12,7 +12,10 @@ defmodule Sol do
           |> Enum.map(&String.to_integer/1)
         end)
 
-      %__MODULE__{points: points}
+      height = length(points)
+      width = points |> hd() |> length()
+
+      %__MODULE__{points: points, size: %{height: height, width: width}}
     end
 
     def map(%__MODULE__{} = grid, mapper) when is_function(mapper, 1) do
@@ -83,6 +86,25 @@ defmodule Sol do
       |> step(100)
 
     count
+  end
+
+  def part_2() do
+    @input
+    |> Grid.from_string()
+    |> find_simultaneous_flash()
+  end
+
+  def find_simultaneous_flash(%Grid{} = grid) do
+    find_simultaneous_flash(grid, {0, nil})
+  end
+
+  defp find_simultaneous_flash(%Grid{size: %{width: w, height: h}}, {step_count, flash_count})
+      when is_integer(flash_count) and flash_count == w * h,
+    do: step_count
+
+  defp find_simultaneous_flash(grid, {step_count, _flash_count}) do
+    {grid, flash_coords} = step(grid)
+    find_simultaneous_flash(grid, {step_count + 1, MapSet.size(flash_coords)})
   end
 
   def step(%Grid{} = grid, steps) do
