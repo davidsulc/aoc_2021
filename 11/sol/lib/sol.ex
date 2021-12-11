@@ -88,10 +88,39 @@ defmodule Sol do
     count
   end
 
+  def part_1_unfold() do
+    @input
+    |> Grid.from_string()
+    |> stream_flash_counts()
+    |> Stream.take(100)
+    |> Enum.sum()
+  end
+
   def part_2() do
     @input
     |> Grid.from_string()
     |> find_simultaneous_flash()
+  end
+
+  def part_2_unfold() do
+    grid =
+      @input
+      |> Grid.from_string()
+
+    total_count = grid.size.width * grid.size.height
+
+    grid
+    |> stream_flash_counts()
+    |> Stream.take_while(& &1 != total_count)
+    |> Enum.count()
+    |> then(& &1 + 1)
+  end
+
+  defp stream_flash_counts(grid) do
+    Stream.unfold(grid, fn g ->
+      {grid, flash_coords} = step(g)
+      {MapSet.size(flash_coords), grid}
+    end)
   end
 
   def find_simultaneous_flash(%Grid{} = grid) do

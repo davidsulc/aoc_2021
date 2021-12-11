@@ -118,4 +118,14 @@ defmodule SolTest do
 
     assert step_count == 195
   end
+
+  test "Part 1" do
+    assert Sol.part_1() == 1571
+    assert Sol.part_1_unfold() == 1571
+  end
+
+  test "Part 2" do
+    assert Sol.part_2() == 387
+    assert Sol.part_2_unfold() == 387
+  end
 end
