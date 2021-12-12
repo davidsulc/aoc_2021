@@ -1,29 +1,55 @@
 defmodule Sol do
   defmodule Path do
-    defstruct [:vertices, :visited]
+    # For part 2, we stored "revisitable" which is the small cave which
+    # the path is allowed to revisited. We achieve this by not reporting
+    # the first visit to the cave when responding to visited/2.
+    defstruct [:vertices, :visited, :revisitable]
 
-    def new() do
+    def new(revisitable \\ :none) do
       %__MODULE__{
         vertices: [:start],
-        visited: MapSet.new([:start])
+        visited: MapSet.new([:start]),
+        revisitable: revisitable
       }
     end
+
+    def visited(%__MODULE__{visited: visited, revisitable: :none}), do: visited
+
+    def visited(%__MODULE__{visited: visited, revisitable: revisitable}),
+      do: MapSet.delete(visited, revisitable)
+
+    def last_vertex(%__MODULE__{vertices: [last | _]}), do: last
 
     def done?(%__MODULE__{vertices: [:end | _]}), do: true
     def done?(%__MODULE__{}), do: false
 
     def extend(%__MODULE__{} = path, vertex) do
-      %{path | vertices: [vertex | path.vertices], visited: MapSet.put(path.visited, vertex)}
+      revisitable =
+        with ^vertex <- path.revisitable,
+             true <- MapSet.member?(path.visited, vertex) do
+          :none
+        else
+          _ -> path.revisitable
+        end
+
+      %{
+        path
+        | vertices: [vertex | path.vertices],
+          visited: MapSet.put(path.visited, vertex),
+          revisitable: revisitable
+      }
     end
   end
 
   defmodule Graph do
+    alias Sol.Path
+
     defstruct [:edges, :not_revisitable]
 
     def new(edges) do
       not_revisitable =
-        (Keyword.keys(edges) ++ Keyword.values(edges))
-        |> Enum.uniq()
+        edges
+        |> vertices()
         |> Enum.filter(&not_revisitable?/1)
         |> MapSet.new()
 
@@ -33,10 +59,22 @@ defmodule Sol do
       }
     end
 
+    def small_caves(%__MODULE__{} = graph) do
+      graph
+      |> vertices()
+      |> Enum.filter(&not_revisitable?/1)
+      |> Enum.reject(&(&1 in [:start, :end]))
+    end
+
     defp not_revisitable?(name) do
       name = Atom.to_string(name)
       name == String.downcase(name)
     end
+
+    def vertices(%__MODULE__{edges: edges}), do: vertices(edges)
+
+    def vertices(edges) when is_list(edges),
+      do: Enum.uniq(Keyword.keys(edges) ++ Keyword.values(edges))
 
     def neighbors(%__MODULE__{edges: edges}, from) do
       edges
@@ -44,11 +82,11 @@ defmodule Sol do
       |> MapSet.new()
     end
 
-    def visitable(%__MODULE__{} = graph, from, visited) do
-      forbidden = MapSet.intersection(visited, graph.not_revisitable)
+    def visitable(%__MODULE__{} = graph, %Path{} = path) do
+      forbidden = MapSet.intersection(Path.visited(path), graph.not_revisitable)
 
       graph
-      |> neighbors(from)
+      |> neighbors(Path.last_vertex(path))
       |> MapSet.difference(forbidden)
     end
   end
@@ -87,9 +125,28 @@ defmodule Sol do
     |> solve_1()
   end
 
+  def part_2() do
+    @input
+    |> parse_input()
+    |> solve_2()
+  end
+
   def solve_1(graph) do
     graph
     |> Sol.find_paths()
+    |> Enum.count()
+  end
+
+  def solve_2(graph) do
+    seed_paths =
+      graph
+      |> Graph.small_caves()
+      |> Enum.map(&Path.new/1)
+
+    graph
+    |> Sol.find_paths(seed_paths)
+    |> Enum.map(&Map.get(&1, :vertices))
+    |> Enum.uniq()
     |> Enum.count()
   end
 
@@ -109,7 +166,9 @@ defmodule Sol do
     [{left, right}, {right, left}]
   end
 
-  def find_paths(%Graph{} = graph), do: find_paths(:cont, graph, [Path.new()])
+  def find_paths(%Graph{} = graph), do: find_paths(graph, [Path.new()])
+
+  def find_paths(%Graph{} = graph, seed), do: find_paths(:cont, graph, seed)
 
   defp find_paths(:halt, _graph, paths), do: paths
 
@@ -123,10 +182,15 @@ defmodule Sol do
     find_paths(continue?, graph, paths)
   end
 
-  def extend_path(%Path{vertices: [:end | _]} = path, _graph), do: [path]
+  def extend_path(%Path{} = path, graph) do
+    case Path.done?(path) do
+      true -> [path]
+      false -> do_extend_path(path, graph)
+    end
+  end
 
-  def extend_path(%Path{vertices: [vertex | _]} = path, graph) do
-    visitable = Graph.visitable(graph, vertex, path.visited)
+  defp do_extend_path(%Path{} = path, graph) do
+    visitable = Graph.visitable(graph, path)
 
     case MapSet.size(visitable) do
       # dead end => remove this path
