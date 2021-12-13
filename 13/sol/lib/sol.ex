@@ -108,10 +108,36 @@ defmodule Sol do
     |> File.read!()
   end
 
+  defp commands() do
+    ~w(priv commands.txt)
+    |> Path.join()
+    |> File.read!()
+    |> String.split("\n", trim: true)
+    |> Enum.map(&parse_command/1)
+  end
+
+  defp parse_command(command) do
+    [axis, index] =
+      command
+      |> String.trim_leading("fold along ")
+      |> String.split("=", trim: true)
+
+    {:"#{axis}", String.to_integer(index)}
+  end
+
   def part_1() do
     dot_coords()
     |> Grid.parse()
     |> Grid.fold(:x, 655)
     |> Grid.dot_count()
+  end
+
+  def part_2() do
+    commands()
+    |> Enum.reduce(Grid.parse(dot_coords()), fn {direction, fold_index}, grid ->
+      Grid.fold(grid, direction, fold_index)
+    end)
+    |> Grid.render()
+    |> IO.puts()
   end
 end
