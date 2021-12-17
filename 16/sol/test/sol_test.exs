@@ -20,7 +20,7 @@ defmodule SolTest do
                %Packet{payload: 10, type: :literal},
                %Packet{payload: 20, type: :literal}
              ],
-             type: :operator,
+             type: {:operator, _},
              version: 1
            } = Packet.parse!(@operator_1)
 
@@ -30,7 +30,7 @@ defmodule SolTest do
                %Packet{payload: 2, type: :literal},
                %Packet{payload: 3, type: :literal}
              ],
-             type: :operator,
+             type: {:operator, _},
              version: 7
            } = Packet.parse!(@operator_2)
   end
@@ -52,6 +52,30 @@ defmodule SolTest do
 
     for {packet, sum} <- scenarios do
       assert_version_total.(packet, sum)
+    end
+  end
+
+  test "Packet.compute/1" do
+    assert_result = fn packet_string, total ->
+      assert total ==
+               packet_string
+               |> Packet.parse!()
+               |> Packet.compute()
+    end
+
+    scenarios = [
+      {"C200B40A82", 3},
+      {"04005AC33890", 54},
+      {"880086C3E88112", 7},
+      {"CE00C43D881120", 9},
+      {"D8005AC2A8F0", 1},
+      {"F600BC2D8F", 0},
+      {"9C005AC2F8F0", 0},
+      {"9C0141080250320F1802104A08", 1}
+    ]
+
+    for {packet, sum} <- scenarios do
+      assert_result.(packet, sum)
     end
   end
 end

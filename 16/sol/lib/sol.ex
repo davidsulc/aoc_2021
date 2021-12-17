@@ -10,7 +10,7 @@ defmodule Sol do
 
     defp version_total(%__MODULE__{type: :literal} = p, acc), do: p.version + acc
 
-    defp version_total(%__MODULE__{type: :operator} = p, acc) do
+    defp version_total(%__MODULE__{type: {:operator, _}} = p, acc) do
       payload_sum =
         p.payload
         |> Enum.map(&version_total/1)
@@ -53,7 +53,13 @@ defmodule Sol do
       type =
         case type do
           4 -> :literal
-          _ -> :operator
+          0 -> {:operator, :sum}
+          1 -> {:operator, :product}
+          2 -> {:operator, :min}
+          3 -> {:operator, :max}
+          5 -> {:operator, :greater}
+          6 -> {:operator, :lesser}
+          7 -> {:operator, :equal}
         end
 
       parse(rest, %{packet | type: type})
@@ -65,7 +71,7 @@ defmodule Sol do
       parse(rest, %{packet | payload: literal})
     end
 
-    defp parse(bits, %__MODULE__{type: :operator} = packet) do
+    defp parse(bits, %__MODULE__{type: {:operator, _}} = packet) do
       {sub_packets, rest} = parse_sub_packets(bits)
       parse(rest, %{packet | payload: sub_packets})
     end
@@ -136,6 +142,53 @@ defmodule Sol do
       {to_convert, rest} = Enum.split(bits, count)
       {Integer.undigits(to_convert, 2), rest}
     end
+
+    def compute(%__MODULE__{type: :literal} = packet), do: packet.payload
+
+    def compute(%__MODULE__{type: {:operator, :sum}} = packet),
+      do: apply_to_computed_payload(packet, &Enum.sum/1)
+
+    def compute(%__MODULE__{type: {:operator, :product}} = packet),
+      do: apply_to_computed_payload(packet, &Enum.product/1)
+
+    def compute(%__MODULE__{type: {:operator, :min}} = packet),
+      do: apply_to_computed_payload(packet, &Enum.min/1)
+
+    def compute(%__MODULE__{type: {:operator, :max}} = packet),
+      do: apply_to_computed_payload(packet, &Enum.max/1)
+
+    def compute(%__MODULE__{type: {:operator, :greater}} = packet) do
+      [left, right] = packet.payload
+
+      case compute(left) > compute(right) do
+        true -> 1
+        false -> 0
+      end
+    end
+
+    def compute(%__MODULE__{type: {:operator, :lesser}} = packet) do
+      [left, right] = packet.payload
+
+      case compute(left) < compute(right) do
+        true -> 1
+        false -> 0
+      end
+    end
+
+    def compute(%__MODULE__{type: {:operator, :equal}} = packet) do
+      [left, right] = packet.payload
+
+      case compute(left) == compute(right) do
+        true -> 1
+        false -> 0
+      end
+    end
+
+    defp apply_to_computed_payload(%__MODULE__{} = packet, func) do
+      packet.payload
+      |> Enum.map(&compute/1)
+      |> func.()
+    end
   end
 
   def part_1() do
@@ -143,6 +196,13 @@ defmodule Sol do
     |> String.trim()
     |> Packet.parse!()
     |> Packet.version_total()
+  end
+
+  def part_2() do
+    @packet_data
+    |> String.trim()
+    |> Packet.parse!()
+    |> Packet.compute()
   end
 
   def hex_to_binary(string), do: hex_to_binary(string, [])
